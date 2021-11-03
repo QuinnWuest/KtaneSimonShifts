@@ -25,7 +25,7 @@ public class SimonShiftsScript : MonoBehaviour
     private string[] COLORNAMES = { "Red", "Orange", "Yellow", "Green", "Cyan", "Blue", "Purple", "Magenta" };
     private Color32[] LightColors = new Color32[]
     {
-        new Color32(255, 0, 255, 255),
+        new Color32(255, 0, 0, 255),
         new Color32(255, 200, 0, 255),
         new Color32(255, 255, 0, 255),
         new Color32(0, 255, 0, 255),
@@ -69,8 +69,12 @@ public class SimonShiftsScript : MonoBehaviour
         _emptySquare = Rnd.Range(0, 9);
         SquareObjs[_emptySquare].SetActive(false);
 
+        float scalar = transform.lossyScale.x;
         foreach (var light in SquareLights)
+        {
+            light.range *= scalar;
             light.enabled = false;
+        }
 
         for (int i = 0; i < 3; i++)
             for (int j = 0; j < _flashSounds[i].Length; j++)
@@ -80,7 +84,7 @@ public class SimonShiftsScript : MonoBehaviour
         int val = 0;
         for (int i = 0; i < 9; i++)
         {
-            ColorblindText[i].text = COLORNAMES[sqColor[_emptySquare]].Substring(0, 1);
+            ColorblindText[i].text = COLORNAMES[sqColor[i]].Substring(0, 1);
             if (i != _emptySquare)
             {
                 sqColor[i] = shuffler[val];
@@ -91,6 +95,7 @@ public class SimonShiftsScript : MonoBehaviour
             }
             else
             {
+                sqColor[_emptySquare] = 8;
                 StatusLightObj.transform.localPosition = new Vector3(xPos[i], 0.01f, zPos[i]);
             }
         }
@@ -117,6 +122,8 @@ public class SimonShiftsScript : MonoBehaviour
                 _hasPressed = true;
                 if (_flashSequence != null)
                     StopCoroutine(_flashSequence);
+                if (_timer != null)
+                    StopCoroutine(_timer);
                 foreach (var light in SquareLights)
                     light.enabled = false;
                 //Debug.LogFormat("[Simon Shifts #{0}] Pressed square #{1}, which is {2}.", _moduleId, sq + 1, sqColor[sq] == null ? "EMPTY" : COLORNAMES[(int)sqColor[sq]]);
@@ -136,8 +143,6 @@ public class SimonShiftsScript : MonoBehaviour
                 }
                 else
                 {
-                    if (_timer != null)
-                        StopCoroutine(_timer);
                     _timer = StartCoroutine(Timer());
                     Audio.PlaySoundAtTransform("Press", transform);
                     _presses.Add(sqColor[sq]);
@@ -240,6 +245,8 @@ public class SimonShiftsScript : MonoBehaviour
         else
         {
             Module.HandleStrike();
+            if (_flashSequence != null)
+                StopCoroutine(_flashSequence);
             _flashSequence = StartCoroutine(FlashSequence());
         }
     }
@@ -247,6 +254,8 @@ public class SimonShiftsScript : MonoBehaviour
     private IEnumerator SolveAnimation()
     {
         Audio.PlaySoundAtTransform("Solve", transform);
+        if (_timer != null)
+            StopCoroutine(_timer);
         for (int i = 0; i < 9; i++)
         {
             if (i != 4)
