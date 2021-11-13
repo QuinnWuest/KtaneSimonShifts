@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using Rnd = UnityEngine.Random;
 
@@ -216,7 +217,11 @@ public class SimonShiftsScript : MonoBehaviour
         bool correct = true;
         for (int i = 0; i < _stage + 3; i++)
         {
-
+            if (sqColor[4] != 8)
+            {
+                correct = false;
+                break;
+            }
             if (_presses.Count < _stage + 3)
             {
                 correct = false;
@@ -227,6 +232,8 @@ public class SimonShiftsScript : MonoBehaviour
         }
         if (correct)
         {
+            if (_flashSequence != null)
+                StopCoroutine(_flashSequence);
             _stage++;
             if (_stage == 3)
             {
@@ -265,5 +272,38 @@ public class SimonShiftsScript : MonoBehaviour
             }
         }
         Module.HandlePass();
+    }
+
+    private static readonly string tpColors = "ROYGCBPMroygcbpm";
+
+#pragma warning disable 0414
+    private readonly string TwitchHelpMessage = "!{0} ROYGCBPM: Press red, orange, yellow, green, cyan, blue, purple, magenta | !{0} submit: Presses the status light to submit that stage.";
+#pragma warning restore 0414
+
+    private IEnumerator ProcessTwitchCommand(string command)
+    {
+        var m = Regex.Match(command, @"^\s*([roygcbpm ]+)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (m.Success)
+        {
+            yield return null;
+            foreach (var ch in m.Groups[1].Value)
+            {
+                var ix = tpColors.IndexOf(ch) % 8;
+                if (ix != -1)
+                {
+                    SquareSels[Array.IndexOf(sqColor, ix)].OnInteract();
+                    yield return new WaitForSeconds(0.2f);
+                }
+            }
+            yield break;
+        }
+        m = Regex.Match(command, @"^\s*(submit|sl|status light)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (m.Success)
+        {
+            yield return null;
+            SquareSels[Array.IndexOf(sqColor, 8)].OnInteract();
+            yield return new WaitForSeconds(0.2f);
+            yield break;
+        }
     }
 }
