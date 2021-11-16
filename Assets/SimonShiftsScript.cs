@@ -166,6 +166,7 @@ public class SimonShiftsScript : MonoBehaviour
             yield return null;
             elapsed += Time.deltaTime;
         }
+        StatusLightObj.transform.localPosition = new Vector3(xPos[start], 0.01f, zPos[start]);
         SquareObjs[start].transform.localPosition = new Vector3(xPos[start], 0.01f, zPos[start]);
 
         SquareObjs[start].SetActive(false);
@@ -207,7 +208,7 @@ public class SimonShiftsScript : MonoBehaviour
     {
         if (!_moduleSolved)
         {
-            yield return new WaitForSeconds(6f);
+            yield return new WaitForSeconds(4f);
             _flashSequence = StartCoroutine(FlashSequence());
         }
     }
