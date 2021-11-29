@@ -117,7 +117,7 @@ public class SimonShiftsScript : MonoBehaviour
     {
         return delegate ()
         {
-            if (!_moduleSolved)
+            if (_stage != 3)
             {
                 _hasPressed = true;
                 if (_flashSequence != null)
@@ -204,7 +204,7 @@ public class SimonShiftsScript : MonoBehaviour
 
     private IEnumerator Timer()
     {
-        if (!_moduleSolved)
+        if (_stage != 3)
         {
             yield return new WaitForSeconds(4f);
             _flashSequence = StartCoroutine(FlashSequence());
@@ -236,7 +236,6 @@ public class SimonShiftsScript : MonoBehaviour
             _stage++;
             if (_stage == 3)
             {
-                _moduleSolved = true;
                 Debug.LogFormat("[Simon Shifts #{0}] Successfully completed Stage {1}. Module solved.", _moduleId, _stage);
                 StartCoroutine(SolveAnimation());
             }
@@ -270,13 +269,14 @@ public class SimonShiftsScript : MonoBehaviour
                 yield return new WaitForSeconds(0.45f);
             }
         }
+        _moduleSolved = true;
         Module.HandlePass();
     }
 
     private static readonly string tpColors = "ROYGCBPMroygcbpm";
 
 #pragma warning disable 0414
-    private readonly string TwitchHelpMessage = "!{0} ROYGCBPM: Press red, orange, yellow, green, cyan, blue, purple, magenta | !{0} submit: Presses the status light to submit that stage.";
+    private readonly string TwitchHelpMessage = "!{0} ROYGCBPM: Press red, orange, yellow, green, cyan, blue, purple, magenta | !{0} submit: Presses the status light to submit that stage. | !{0} colorblind";
 #pragma warning restore 0414
 
     private IEnumerator ProcessTwitchCommand(string command)
@@ -302,6 +302,14 @@ public class SimonShiftsScript : MonoBehaviour
             yield return null;
             SquareSels[Array.IndexOf(_sqColor, 8)].OnInteract();
             yield return new WaitForSeconds(0.2f);
+            yield break;
+        }
+        m = Regex.Match(command, @"^\s*(colorblind|colourblind)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (m.Success)
+        {
+            yield return null;
+            _colorblindMode = !_colorblindMode;
+            SetColorblindMode(_colorblindMode);
             yield break;
         }
     }

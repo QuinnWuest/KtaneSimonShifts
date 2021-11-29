@@ -3547,6 +3547,7 @@ MonoBehaviour:
   Module: {fileID: 114082036822983748}
   BombInfo: {fileID: 114183036587157820}
   Audio: {fileID: 114630167072829166}
+  ColorblindMode: {fileID: 114233453443219704}
   SquareSels:
   - {fileID: 114020541986373550}
   - {fileID: 114251741183513724}
@@ -3587,7 +3588,6 @@ MonoBehaviour:
   - {fileID: 108000454124050598}
   - {fileID: 108120317632730118}
   - {fileID: 108415690657872014}
-  ColorblindMode: {fileID: 114233453443219704}
   ColorblindText:
   - {fileID: 102480310833830742}
   - {fileID: 102862574874421422}
