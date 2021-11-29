@@ -11,20 +11,23 @@ public class SimonShiftsScript : MonoBehaviour
     public KMBombModule Module;
     public KMBombInfo BombInfo;
     public KMAudio Audio;
+    public KMColorblindMode ColorblindMode;
 
     public KMSelectable[] SquareSels;
     public GameObject[] SquareObjs;
     public Material[] SquareColorMats;
     public GameObject StatusLightObj;
     public Light[] SquareLights;
+    public TextMesh[] ColorblindText;
+    public GameObject[] ColorblindTextObj;
 
     private int _moduleId;
     private static int _moduleIdCounter = 1;
     private bool _moduleSolved;
 
-    private string[] SOUNDNAMES = { "Sound1", "Sound2", "Sound3", "Sound4", "Sound5" };
-    private string[] COLORNAMES = { "Red", "Orange", "Yellow", "Green", "Cyan", "Blue", "Purple", "Magenta" };
-    private Color32[] LightColors = new Color32[]
+    private static readonly string[] SOUNDNAMES = { "Sound1", "Sound2", "Sound3", "Sound4", "Sound5" };
+    private static readonly string[] COLORNAMES = { "Red", "Orange", "Yellow", "Green", "Cyan", "Blue", "Purple", "Magenta" };
+    private static readonly Color32[] LightColors = new Color32[]
     {
         new Color32(255, 0, 0, 255),
         new Color32(255, 200, 0, 255),
@@ -36,19 +39,18 @@ public class SimonShiftsScript : MonoBehaviour
         new Color32(255, 0, 255, 255)
     };
     private int _emptySquare;
-    private int[][] _adjacents = new int[9][] { new int[2] { 1, 3 }, new int[3] { 0, 2, 4 }, new int[2] { 1, 5 }, new int[3] { 0, 4, 6 }, new int[4] { 1, 3, 5, 7 }, new int[3] { 2, 4, 8 }, new int[2] { 3, 7 }, new int[3] { 4, 6, 8 }, new int[2] { 5, 7 } };
-    private int[] sqColor = new int[9];
-    private float[] xPos = { -0.05f, 0f, 0.05f, -0.05f, 0f, 0.05f, -0.05f, 0f, 0.05f };
-    private float[] zPos = { 0.05f, 0.05f, 0.05f, 0f, 0f, 0f, -0.05f, -0.05f, -0.05f };
-    private Coroutine _moveSquare;
+    private readonly int[] _sqColor = new int[9];
+    private static readonly int[][] _adjacents = new int[9][] { new int[2] { 1, 3 }, new int[3] { 0, 2, 4 }, new int[2] { 1, 5 }, new int[3] { 0, 4, 6 }, new int[4] { 1, 3, 5, 7 }, new int[3] { 2, 4, 8 }, new int[2] { 3, 7 }, new int[3] { 4, 6, 8 }, new int[2] { 5, 7 } };
+    private static readonly float[] xPos = { -0.05f, 0f, 0.05f, -0.05f, 0f, 0.05f, -0.05f, 0f, 0.05f };
+    private static readonly float[] zPos = { 0.05f, 0.05f, 0.05f, 0f, 0f, 0f, -0.05f, -0.05f, -0.05f };
     private bool _isMoving;
+    private bool _isFirstFlash;
     private bool _hasPressed;
     private int[] _flashes;
     private Coroutine _flashSequence;
     private int _stage = 0;
-    private List<int> _presses = new List<int>();
-    private List<bool> _wasShifted = new List<bool>();
-    private int[][] _flashSounds = new int[3][]
+    private readonly List<int> _presses = new List<int>();
+    private readonly int[][] _flashSounds = new int[3][]
     {
         new int[3],
         new int[4],
@@ -56,9 +58,6 @@ public class SimonShiftsScript : MonoBehaviour
     };
     private Coroutine _timer;
 
-    public KMColorblindMode ColorblindMode;
-    public TextMesh[] ColorblindText;
-    public GameObject[] ColorblindTextObj;
     private bool _colorblindMode;
 
     private void Start()
@@ -85,10 +84,10 @@ public class SimonShiftsScript : MonoBehaviour
         int val = 0;
         for (int i = 0; i < 9; i++)
         {
-            ColorblindText[i].text = COLORNAMES[sqColor[i]].Substring(0, 1);
+            ColorblindText[i].text = COLORNAMES[_sqColor[i]].Substring(0, 1);
             if (i != _emptySquare)
             {
-                sqColor[i] = shuffler[val];
+                _sqColor[i] = shuffler[val];
                 SquareLights[i].color = LightColors[shuffler[val]];
                 ColorblindText[i].text = COLORNAMES[shuffler[val]].Substring(0, 1);
                 SquareObjs[i].GetComponent<MeshRenderer>().material = SquareColorMats[shuffler[val]];
@@ -96,7 +95,7 @@ public class SimonShiftsScript : MonoBehaviour
             }
             else
             {
-                sqColor[_emptySquare] = 8;
+                _sqColor[_emptySquare] = 8;
                 StatusLightObj.transform.localPosition = new Vector3(xPos[i], 0.01f, zPos[i]);
             }
         }
@@ -127,15 +126,7 @@ public class SimonShiftsScript : MonoBehaviour
                     StopCoroutine(_timer);
                 foreach (var light in SquareLights)
                     light.enabled = false;
-                //Debug.LogFormat("[Simon Shifts #{0}] Pressed square #{1}, which is {2}.", _moduleId, sq + 1, sqColor[sq] == null ? "EMPTY" : COLORNAMES[(int)sqColor[sq]]);
 
-                if (_adjacents[sq].Contains(_emptySquare) && !_isMoving)
-                {
-                    _moveSquare = StartCoroutine(MoveSquare(sq));
-                    _wasShifted.Add(true);
-                }
-                else
-                    _wasShifted.Add(false);
                 if (sq == _emptySquare)
                 {
                     Debug.LogFormat("[Simon Shifts #{0}] Pressed the EMPTY square.", _moduleId);
@@ -146,8 +137,13 @@ public class SimonShiftsScript : MonoBehaviour
                 {
                     _timer = StartCoroutine(Timer());
                     Audio.PlaySoundAtTransform("Press", transform);
-                    _presses.Add(sqColor[sq]);
-                    //Debug.LogFormat("[Simon Shifts #{0}] Pressed {1}", _moduleId, sqColor[sq] == 8 ? "EMPTY" : COLORNAMES[sqColor[sq]]);
+                    if (_adjacents[sq].Contains(_emptySquare) && !_isMoving)
+                    {
+                        _presses.Add(_sqColor[sq]);
+                        while (_presses.Count > _stage + 3)
+                            _presses.RemoveAt(0);
+                        StartCoroutine(MoveSquare(sq));
+                    }
                 }
             }
             return false;
@@ -172,13 +168,13 @@ public class SimonShiftsScript : MonoBehaviour
         SquareObjs[start].SetActive(false);
         SquareObjs[_emptySquare].SetActive(true);
 
-        sqColor[_emptySquare] = sqColor[start];
-        sqColor[start] = 8;
+        _sqColor[_emptySquare] = _sqColor[start];
+        _sqColor[start] = 8;
 
-        SquareObjs[_emptySquare].GetComponent<MeshRenderer>().material = SquareColorMats[sqColor[_emptySquare]];
-        ColorblindText[_emptySquare].text = COLORNAMES[sqColor[_emptySquare]].Substring(0, 1);
+        SquareObjs[_emptySquare].GetComponent<MeshRenderer>().material = SquareColorMats[_sqColor[_emptySquare]];
+        ColorblindText[_emptySquare].text = COLORNAMES[_sqColor[_emptySquare]].Substring(0, 1);
 
-        SquareLights[_emptySquare].color = LightColors[sqColor[_emptySquare]];
+        SquareLights[_emptySquare].color = LightColors[_sqColor[_emptySquare]];
 
         _emptySquare = start;
         _isMoving = false;
@@ -189,17 +185,19 @@ public class SimonShiftsScript : MonoBehaviour
         int[] flashes = new int[5];
         for (int i = 0; i < 5; i++)
             flashes[i] = _flashes[i];
+        _isFirstFlash = true;
         while (true)
         {
             for (int i = 0; i < 3 + _stage; i++)
             {
                 if (_hasPressed)
                     Audio.PlaySoundAtTransform(SOUNDNAMES[_flashSounds[_stage][i]], transform);
-                SquareLights[Array.IndexOf(sqColor, flashes[i])].enabled = true;
+                SquareLights[Array.IndexOf(_sqColor, flashes[i])].enabled = true;
                 yield return new WaitForSeconds(0.3f);
-                SquareLights[Array.IndexOf(sqColor, flashes[i])].enabled = false;
+                SquareLights[Array.IndexOf(_sqColor, flashes[i])].enabled = false;
                 yield return new WaitForSeconds(0.12f);
             }
+            _isFirstFlash = false;
             yield return new WaitForSeconds(1.5f);
         }
     }
@@ -218,7 +216,7 @@ public class SimonShiftsScript : MonoBehaviour
         bool correct = true;
         for (int i = 0; i < _stage + 3; i++)
         {
-            if (sqColor[4] != 8)
+            if (_sqColor[4] != 8)
             {
                 correct = false;
                 break;
@@ -292,7 +290,7 @@ public class SimonShiftsScript : MonoBehaviour
                 var ix = tpColors.IndexOf(ch) % 8;
                 if (ix != -1)
                 {
-                    SquareSels[Array.IndexOf(sqColor, ix)].OnInteract();
+                    SquareSels[Array.IndexOf(_sqColor, ix)].OnInteract();
                     yield return new WaitForSeconds(0.2f);
                 }
             }
@@ -302,9 +300,141 @@ public class SimonShiftsScript : MonoBehaviour
         if (m.Success)
         {
             yield return null;
-            SquareSels[Array.IndexOf(sqColor, 8)].OnInteract();
+            SquareSels[Array.IndexOf(_sqColor, 8)].OnInteract();
             yield return new WaitForSeconds(0.2f);
             yield break;
+        }
+    }
+
+    private struct SolverQueueItem : IEquatable<SolverQueueItem>
+    {
+        public int[] SqColors;
+        public int[] Presses;   // Square positions of all presses
+
+        public bool Equals(SolverQueueItem other)
+        {
+            return other.SqColors.SequenceEqual(SqColors);
+        }
+        public override int GetHashCode()
+        {
+            return ArrayHash(SqColors);
+        }
+        public override bool Equals(object obj)
+        {
+            return obj is SolverQueueItem && Equals((SolverQueueItem) obj);
+        }
+
+        /// <summary>
+        ///     Computes a hash value from an array of elements.</summary>
+        /// <param name="input">
+        ///     The array of elements to hash.</param>
+        /// <returns>
+        ///     The computed hash value.</returns>
+        private static int ArrayHash(Array input)
+        {
+            if (input == null)
+                return 0;
+
+            const int b = 378551;
+            int a = 63689;
+            int hash = input.Length + 1;
+
+            unchecked
+            {
+                foreach (object t in input)
+                {
+                    if (t is Array)
+                        hash = hash * a + ArrayHash((Array) t);
+                    else if (t != null)
+                        hash = hash * a + t.GetHashCode();
+                    a *= b;
+                }
+            }
+
+            return hash;
+        }
+    }
+
+    private static int[][] _fillOrders = new[]
+    {
+        new[] { 4, 1, 0, 3, 6, 7 },
+        new[] { 4, 1, 2, 5, 8, 7 },
+        new[] { 4, 7, 6, 3, 0, 1 },
+        new[] { 4, 7, 8, 5, 2, 1 },
+        new[] { 4, 5, 8, 7, 6, 3 },
+        new[] { 4, 5, 2, 1, 0, 3 },
+        new[] { 4, 3, 0, 1, 2, 5 },
+        new[] { 4, 3, 6, 7, 8, 5 }
+    };
+
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        while (!_moduleSolved)
+        {
+            if (_stage == 3 || _isMoving)
+            {
+                yield return true;
+                continue;
+            }
+
+            var numFlashes = _stage + 3;
+
+            var goals = _fillOrders.Select(fillOrder =>
+            {
+                var goal = new int?[9];
+                for (var i = 0; i < numFlashes + 1; i++)
+                    goal[fillOrder[i]] = i == numFlashes ? 8 : _flashes[numFlashes - 1 - i];
+                return goal;
+            }).ToArray();
+
+            var q = new Queue<SolverQueueItem>();
+            var already = new HashSet<SolverQueueItem>();
+            var currentState = new SolverQueueItem { SqColors = _sqColor.ToArray(), Presses = new int[0] };
+            q.Enqueue(currentState);
+            while (q.Count > 0)
+            {
+                var item = q.Dequeue();
+                if (!already.Add(item))
+                    continue;
+                int goalIx = goals.IndexOf(goal => Enumerable.Range(0, 9).All(ix => goal[ix] == null || item.SqColors[ix] == goal[ix].Value));
+                if (goalIx != -1)
+                {
+                    // Solution found
+                    foreach (var pr in item.Presses)
+                    {
+                        SquareSels[pr].OnInteract();
+                        while (_isMoving)
+                            yield return true;
+                    }
+                    for (var i = numFlashes - 1; i >= 0; i--)
+                    {
+                        SquareSels[_fillOrders[goalIx][i]].OnInteract();
+                        while (_isMoving)
+                            yield return true;
+                    }
+                    SquareSels[4].OnInteract();
+                    yield return new WaitForSeconds(.1f);
+                    while (_isFirstFlash)
+                        yield return true;
+                    goto nextStage;
+                }
+
+                var blank = Array.IndexOf(item.SqColors, 8);
+                foreach (var adj in _adjacents[blank])
+                {
+                    var newSqColors = item.SqColors.ToArray();
+                    newSqColors[blank] = item.SqColors[adj];
+                    newSqColors[adj] = 8;
+                    var newPresses = new int[item.Presses.Length + 1];
+                    Array.Copy(item.Presses, newPresses, item.Presses.Length);
+                    newPresses[newPresses.Length - 1] = adj;
+                    var newItem = new SolverQueueItem { SqColors = newSqColors, Presses = newPresses };
+                    if (!already.Contains(newItem))
+                        q.Enqueue(newItem);
+                }
+            }
+
+            nextStage:;
         }
     }
 }
