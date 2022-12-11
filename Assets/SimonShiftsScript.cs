@@ -300,11 +300,13 @@ public class SimonShiftsScript : MonoBehaviour
         if (m.Success)
         {
             yield return null;
+            yield return "strike";
+            yield return "solve";
             SquareSels[Array.IndexOf(_sqColor, 8)].OnInteract();
             yield return new WaitForSeconds(0.2f);
             yield break;
         }
-        m = Regex.Match(command, @"^\s*(colorblind|colourblind)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        m = Regex.Match(command, @"^\s*colou?rblind\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         if (m.Success)
         {
             yield return null;
