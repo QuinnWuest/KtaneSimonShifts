@@ -296,7 +296,7 @@ public class SimonShiftsScript : MonoBehaviour
             }
             yield break;
         }
-        m = Regex.Match(command, @"^\s*(submit|sl|status light)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        m = Regex.Match(command, @"^\s*(submit|sl|status\s+light)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         if (m.Success)
         {
             yield return null;

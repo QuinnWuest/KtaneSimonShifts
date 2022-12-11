@@ -14,11 +14,9 @@ MonoBehaviour:
   id: SimonShiftsModule
   title: Simon Shifts
   author: Quinn Wuest
-  description: 'I suppose this could''ve also been called "Simon Underneath Caps Lock",
-    but that doesn''t have a nice sound to it.
-
-
-    Made by Quinn Wuest'
+  description: "I suppose this could've also been called \"Simon Underneath Caps Lock\",
+    but that doesn't have a nice sound to it.\n\nMade by Quinn Wuest\n\n[url=https://ktane.timwi.de/HTML/Simon%20Shiftshtml]Manual
+    HTML[/url]\r\n[url=https://ktane.timwi.de/PDF/Simon%20Shiftspdf]Manual PDF[/url]"
   version: 1.0
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 93f6996732e5a1840adc34a2cdc9444f, type: 3}
