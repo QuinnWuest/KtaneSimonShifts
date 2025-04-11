@@ -129,12 +129,13 @@ public class SimonShiftsScript : MonoBehaviour
 
                 if (sq == _emptySquare)
                 {
+                    SquareSels[sq].AddInteractionPunch(0.5f);
                     Debug.LogFormat("[Simon Shifts #{0}] Pressed the EMPTY square.", _moduleId);
                     CheckAnswer();
-                    //_flashSequence = StartCoroutine(FlashSequence());
                 }
                 else
                 {
+                    SquareSels[sq].AddInteractionPunch(0.2f);
                     _timer = StartCoroutine(Timer());
                     Audio.PlaySoundAtTransform("Press", transform);
                     if (_adjacents[sq].Contains(_emptySquare) && !_isMoving)
@@ -206,7 +207,7 @@ public class SimonShiftsScript : MonoBehaviour
     {
         if (_stage != 3)
         {
-            yield return new WaitForSeconds(4f);
+            yield return new WaitForSeconds(1.5f);
             _flashSequence = StartCoroutine(FlashSequence());
         }
     }
